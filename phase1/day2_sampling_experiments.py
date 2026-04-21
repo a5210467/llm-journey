@@ -99,8 +99,13 @@ inputs = tokenizer(PROMPT, return_tensors="pt").to(DEVICE)
 with torch.no_grad():
     outputs = model(**inputs)
 
-logits = outputs.logits[0, -1, :]  # shape: [vocab_size]
+# Use float32 for entropy calculations to avoid float16 precision loss
+logits = outputs.logits[0, -1, :].float()  # Convert to fp32
 probs = torch.softmax(logits, dim=-1)
+
+# Use log_softmax for numerical stability
+log_probs = torch.log_softmax(logits, dim=-1)
+entropy = -(probs * log_probs).sum().item()
 top_probs, top_ids = torch.topk(probs, k=10)
 
 print(f"{'Rank':<6}{'Token':<20}{'Probability':<15}")
